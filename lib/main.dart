@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
@@ -21,6 +22,10 @@ class _IcecreamAppState extends State<IcecreamApp> {
   int decoCount = 1, order = 0;
   bool spoon = false, napkin = false, honey = false;
   String receipt = '';
+  Timer? spicyTimer;   // null when the gauge is stopped
+  double gauge = 0;    // 0.0 (left) .. 1.0 (right)
+  double speed = 0.02; // amount moved per tick; negative = moving left
+  int spicy = 0;       // 0 = not decided yet
 
   Widget choices(
     Iterable<String> items,
@@ -37,6 +42,33 @@ class _IcecreamAppState extends State<IcecreamApp> {
         ),
     ],
   );
+
+  void startGauge() {
+    spicy = 0;
+    spicyTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
+      setState(() {
+        gauge += speed;
+        if (gauge >= 1 || gauge <= 0) {
+          speed = -speed;
+          gauge = gauge.clamp(0, 1);
+        }
+      });
+    });
+    setState(() {});
+  }
+
+  void stopGauge() {
+    spicyTimer?.cancel();
+    spicyTimer = null;
+    setState(() => spicy = (gauge * 4).round() + 1); // 1..5
+  }
+
+  @override
+  void dispose() {
+    spicyTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final subtotal = foods[food]! + fruits.length * 100 + (deco == 'なし' ? 0 : decoCount * 50);
@@ -48,7 +80,7 @@ class _IcecreamAppState extends State<IcecreamApp> {
           style: const TextStyle(fontSize: 22)))),
       Center(child: Text(food.split(' ').first,
         style: const TextStyle(fontSize: 90))),
-      Positioned(top: 35, right: 28, child: SizedBox(width: 78,
+      Positioned(top: 35, right: 28, child: SizedBox(width: 78, 
         child: Text(fruits.join(), textAlign: TextAlign.right,
           style: const TextStyle(fontSize: 22)))),
     ]));
@@ -106,6 +138,15 @@ class _IcecreamAppState extends State<IcecreamApp> {
         supply('🍯 はちみつ（無料）', honey, (v) => honey = v),
       ],
     );
+    final spiciness = Column(children: [
+      LinearProgressIndicator(value: gauge, minHeight: 20),
+      const SizedBox(height: 8),
+      FilledButton(
+        onPressed: spicyTimer == null ? startGauge : stopGauge,
+        child: Text(spicyTimer == null ? 'スタート' : 'ストップ！'),
+      ),
+      if (spicy > 0) Text('辛さ: ${'🌶️' * spicy}（$spicy辛）'),
+    ]);
     final bill = Column(
       children: [
         Text('税抜 $subtotal 円 / 消費税 $tax 円'),
@@ -118,6 +159,7 @@ class _IcecreamAppState extends State<IcecreamApp> {
         receipt = '$food  ${foods[food]}円\n'
             'フルーツ: ${fruits.isEmpty ? 'なし' : fruits.join(' ')}\n'
             'デコレーション: ${deco == 'なし' ? 'なし' : '$deco × $decoCount'}\n'
+            '🌶️ 辛さ: ${spicy == 0 ? '未選択' : '$spicy辛'}\n'
             '🥄 スプーン: ${spoon ? 'あり' : 'なし'}\n'
             '🧻 紙ナプキン: ${napkin ? 'あり' : 'なし'}\n'
             '🍯 はちみつ: ${napkin ? 'あり' : 'なし'}\n'
@@ -143,6 +185,8 @@ class _IcecreamAppState extends State<IcecreamApp> {
           products,
           const Text('トッピング(1種類100円)'),
           toppings,
+          const Text('辛さ（タイミングで決める）'),
+          spiciness,
           const Text('デコレーション(1個50円)'), decorations,
           const Text('無料サービス'),
           supplies,
