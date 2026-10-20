@@ -162,7 +162,7 @@ class _IcecreamAppState extends State<IcecreamApp> {
             '🌶️ 辛さ: ${spicy == 0 ? '未選択' : '$spicy辛'}\n'
             '🥄 スプーン: ${spoon ? 'あり' : 'なし'}\n'
             '🧻 紙ナプキン: ${napkin ? 'あり' : 'なし'}\n'
-            '🍯 はちみつ: ${napkin ? 'あり' : 'なし'}\n'
+            '🍯 はちみつ: ${honey ? 'あり' : 'なし'}\n'
             '税抜: $subtotal 円 / 消費税（10%）: $tax 円\n'
             '合計: $total 円';
       }), child: const Text('注文する')));
